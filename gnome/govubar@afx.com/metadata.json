@@ -1,0 +1,6 @@
+{
+  "uuid" : "govubar@afx.com",
+  "name" : "GoVUBar",
+  "description" : "GoVUBar Audio VU Meter on TopBar",
+  "shell-version": ["46"]
+}
