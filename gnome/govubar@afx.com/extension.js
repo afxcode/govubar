@@ -30,10 +30,13 @@ class Indicator extends PanelMenu.Button {
         const script = `govubar`;
 
         try {
-            const proc = Gio.Subprocess.new(['bash', '-c', script], Gio.SubprocessFlags.STDOUT_PIPE);
+            this._subprocess = Gio.Subprocess.new(
+                ['bash', '-c', script],
+                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.HAVE_STDERR
+            );
 
             const stdoutStream = new Gio.DataInputStream({
-                base_stream: proc.get_stdout_pipe(),
+                base_stream: this._subprocess.get_stdout_pipe(),
                 close_base_stream: true,
             });
 
@@ -44,6 +47,8 @@ class Indicator extends PanelMenu.Button {
     }
 
     _readOutput(stdout) {
+        if (!this.label || this.label.isDestroyed()) return;
+
         stdout.read_line_async(GLib.PRIORITY_LOW, null, (stream, result) => {
             try {
                 const [line] = stream.read_line_finish_utf8(result);
@@ -57,6 +62,20 @@ class Indicator extends PanelMenu.Button {
             }
         });
     }
+
+    vfunc_dispose() {
+        super.vfunc_dispose();
+
+        if (this._subprocess) {
+            this._subprocess.force_exit();
+            this._subprocess = null;
+        }
+
+        if (this.label) {
+            this.label.destroy();
+            this.label = null;
+        }
+    }
 });
 
 export default class IndicatorExampleExtension extends Extension {
@@ -66,7 +85,10 @@ export default class IndicatorExampleExtension extends Extension {
     }
 
     disable() {
-        this._indicator.destroy();
-        this._indicator = null;
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
     }
 }
+
